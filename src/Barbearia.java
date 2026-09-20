@@ -1,42 +1,86 @@
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayDeque;
+import java.util.concurrent.Semaphore;
 
 public class Barbearia {
-    BlockingQueue<Cliente> filaEmPe = new ArrayBlockingQueue<>(13);
-    BlockingQueue<Cliente> filaSofa = new ArrayBlockingQueue<>(4);
-    BlockingQueue<Cliente> filaPagamento = new ArrayBlockingQueue<>(2);
+    private final ArrayDeque<Cliente> filaEmPe = new ArrayDeque<>();
+    private final ArrayDeque<Cliente> filaSofa = new ArrayDeque<>();
 
-    private boolean barbAberta;
+    private final Semaphore caixa = new Semaphore(1, true);
+
+    private static final int capacidadeSofa = 4;
+    private static final int capacidadePe = 13;
+    private static final int cadeirasBarbeiro = 3;
+    private static final int capacidadeTotal = capacidadeSofa + capacidadePe + cadeirasBarbeiro;
+
+    private boolean barbAberta = true;
+    private int totalClientes;
 
     public boolean getBarbAberta() {
         return barbAberta;
+    }
+
+    public int getTotalClientes() {
+        return totalClientes;
+    }
+
+    public synchronized void fechar() {
+        barbAberta = false;
+        notifyAll();
     }
 
     public static synchronized void log(String log) {
         System.out.println(log);
     }
 
-    public synchronized void entrar(Cliente cliente) throws InterruptedException {
-
+    public synchronized void registrarAtendimento() {
+        totalClientes++;
     }
 
-    public Cliente chamarProximo() throws InterruptedException {
-        Cliente cliente = filaSofa.poll(1, TimeUnit.SECONDS);
-        if (cliente == null)
-            return null;
+    public synchronized void entrar(Cliente cliente) throws InterruptedException {
+        boolean estaLotado = (filaEmPe.size() + filaSofa.size() + cadeirasBarbeiro) >= capacidadeTotal;
 
-        log(cliente.getNome() + " foi chamado para cortar o cabelo");
-
-        filaSofa.remove();
-
-        Cliente emPe = filaEmPe.remove();
-        if (emPe != null) {
-            filaSofa.peek();
-            log(emPe.getNome() + " saiu da fila e sentou no sofá");
-            filaSofa.add(emPe);
+        while (!barbAberta || estaLotado) {
+            log(cliente + " achou a barbearia cheia/fechada e foi embora");
+            return;
         }
 
+        filaEmPe.addLast(cliente);
+        log(cliente + " entrou e está esperando");
+
+        while (filaSofa.size() >= capacidadeSofa && filaEmPe.peekFirst() != cliente) {
+            wait(); // espera vaga no sofá
+        }
+
+        filaEmPe.remove(cliente);
+        filaSofa.addLast(cliente);
+        log(cliente.getNome() + " sentou no sofá");
+
+        notifyAll();
+    }
+
+    public synchronized Cliente chamarProximo() throws InterruptedException {
+        while (filaSofa.isEmpty() && barbAberta) {
+            wait(1000); // espera por alguém no sofá
+        }
+        if (filaSofa.isEmpty())
+            return null;
+
+        Cliente cliente = filaSofa.pollFirst();
+        log(cliente.getNome() + " foi chamado para cortar o cabelo");
+        notifyAll(); // libera vaga no sofá pra quem está em pé
+
         return cliente;
+    }
+
+    public void pagar(Cliente cliente, Barbeiro barbeiro) throws InterruptedException {
+        caixa.acquire();
+
+        try {
+            log(cliente.getNome() + " está pagando com " + barbeiro.getNome());
+            Thread.sleep(100);
+            log(cliente.getNome() + " terminou de pagar e saiu");
+        } finally {
+            caixa.release();
+        }
     }
 }

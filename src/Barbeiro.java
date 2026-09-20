@@ -1,7 +1,6 @@
 public class Barbeiro extends Thread {
     private String nome;
     private Barbearia barbearia;
-    private int totalTrabalhado;
 
     public Barbeiro(String nome, Barbearia barb) {
         this.nome = nome;
@@ -30,7 +29,8 @@ public class Barbeiro extends Thread {
                     continue;
 
                 cortar(proximo);
-                // barbearia.pagar(proximo, this);
+                barbearia.pagar(proximo, this);
+                barbearia.registrarAtendimento();
             }
         } catch (InterruptedException e) {
             e.printStackTrace();

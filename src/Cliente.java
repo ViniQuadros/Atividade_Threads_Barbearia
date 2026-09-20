@@ -1,22 +1,27 @@
 import java.util.concurrent.ThreadLocalRandom;
 
-public class Cliente extends Thread {
+public class Cliente implements Runnable {
     private int id;
     private String nome;
-    private int tamanhoCabelo; //Define tempo de corte
-    private int tempoChegada;
+    private int tamanhoCabelo;
     private Barbearia barbearia;
 
-    Cliente(int id, String nome, Barbearia barbearia){
+    Cliente(int id, String nome, Barbearia barbearia) {
         this.id = id;
         this.nome = nome;
         this.barbearia = barbearia;
 
-        tamanhoCabelo = ThreadLocalRandom.current().nextInt(100, 1000);
+        //Tempo que vai levar cada corte de cabelo
+        tamanhoCabelo = ThreadLocalRandom.current().nextInt(100, 500);
     }
 
-    public String getNome(){ return nome; }
-    public int getTamanhoCabelo(){ return tamanhoCabelo;}
+    public String getNome() {
+        return nome;
+    }
+
+    public int getTamanhoCabelo() {
+        return tamanhoCabelo;
+    }
 
     @Override
     public String toString() {
