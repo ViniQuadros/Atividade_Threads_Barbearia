@@ -45,6 +45,7 @@ public class Barbearia {
         }
 
         filaEmPe.addLast(cliente);
+        Metricas.chegou(cliente); // [MÉTRICAS] início da espera em pé
         log(cliente + " entrou e está esperando");
 
         while (filaSofa.size() >= capacidadeSofa && filaEmPe.peekFirst() != cliente) {
@@ -53,6 +54,7 @@ public class Barbearia {
 
         filaEmPe.remove(cliente);
         filaSofa.addLast(cliente);
+        Metricas.sentouNoSofa(cliente); // [MÉTRICAS] fim da espera em pé / início da espera no sofá
         log(cliente.getNome() + " sentou no sofá");
 
         notifyAll();
@@ -66,6 +68,7 @@ public class Barbearia {
             return null;
 
         Cliente cliente = filaSofa.pollFirst();
+        Metricas.chamado(cliente, Thread.currentThread()); // [MÉTRICAS] fim da espera no sofá / barbeiro ocupado
         log(cliente.getNome() + " foi chamado para cortar o cabelo");
         notifyAll(); // libera vaga no sofá pra quem está em pé
 
@@ -73,12 +76,15 @@ public class Barbearia {
     }
 
     public void pagar(Cliente cliente, Barbeiro barbeiro) throws InterruptedException {
+        Metricas.pediuCaixa(cliente); // [MÉTRICAS] início da espera na fila da POS
         caixa.acquire();
+        Metricas.obteveCaixa(cliente); // [MÉTRICAS] fim da espera na fila da POS
 
         try {
             log(cliente.getNome() + " está pagando com " + barbeiro.getNome());
             Thread.sleep(100);
             log(cliente.getNome() + " terminou de pagar e saiu");
+            Metricas.terminou(cliente, barbeiro); // [MÉTRICAS] barbeiro livre / fim do atendimento
         } finally {
             caixa.release();
         }

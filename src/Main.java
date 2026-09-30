@@ -72,5 +72,6 @@ public class Main {
         }
 
         System.out.println("Barbearia encerrada com: " + barbearia.getTotalClientes() + " clientes atendidos!");
+
     }
 }
